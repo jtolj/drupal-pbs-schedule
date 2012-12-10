@@ -193,7 +193,7 @@ function _on_tonight_schedule_content() {
               '#href' => 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
               '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
             );
-          $title = drupal_render($link) . '</li>';
+          $title = drupal_render($link);
           }
           //Otherwise just provide the title
           else {
