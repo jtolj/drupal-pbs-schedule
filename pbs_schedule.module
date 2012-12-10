@@ -1,0 +1,262 @@
+<?php
+
+/**
+ * Implements hook_perm()
+ */
+function pbs_schedule_perm() {
+  return array(
+    'administer pbs_schedule',
+  );
+}
+
+/**
+ * Implements hook_menu()
+ */
+function pbs_schedule_menu() {
+  $items = array();
+  //Admin Menu
+  $items['admin/config/system/pbs_schedule'] = array(
+    'title' => 'PBS Schedule API',
+    'description' => 'Manage settings for the PBS Schedule API',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pbs_schedule_admin_site_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer pbs_schedule'),
+    'file' => 'pbs_schedule.admin.inc',
+  );
+  //PBS API Proxy callbacks
+  $items['pbs-schedule/showlookup/nojs/%'] = array(
+    'page callback' => 'pbs_schedule_get_show',
+    'page arguments' => array(2,3),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['pbs-schedule/showlookup/ajax/%'] = array(
+    'delivery callback' => 'ajax_deliver',
+  ) + $items['pbs-schedule/showlookup/nojs/%'];
+  return $items;
+}
+
+/**
+ * Implements hook_theme()
+ */
+function pbs_schedule_theme() {
+  return array(
+    'pbs_schedule_program_detail' => array(
+      'variables' => array(
+        'is_ajax' => NULL,
+        'program_title' => NULL,
+        'program_description' => NULL,
+        'episode_title' => NULL,
+        'episode_description' => NULL,
+        'upcoming_airdates' => array()
+      ),
+      'template' => 'pbs_schedule_program_detail',
+      'path' =>  drupal_get_path('module', 'pbs_schedule').'/templates',
+    ),
+    'pbs_schedule_tonight_listing' => array(
+      'variables' => array(
+        'channels' => array(),
+      ),
+      'template' => 'pbs_schedule_tonight_listing',
+      'path' =>  drupal_get_path('module', 'pbs_schedule').'/templates',
+    )
+  );
+}
+
+
+/**
+ * Gets configuration settings.
+ * 
+ * @return Array  Associative array of config settings (api_key, callsign, channels)
+ */
+function pbs_schedule_get_config() {
+  $config = &drupal_static(__FUNCTION__);
+  if (!isset($config)) {
+    $config = array(
+      'api_key' => variable_get('pbs_schedule_api_key'),
+      'callsign' => variable_get('pbs_schedule_default_callsign'),
+      //TODO - this is hackish
+      'channels' => array_values(variable_get('pbs_schedule_active_channels')),
+    );
+  }
+  return $config;
+}
+
+/**
+ * Make a request to the PBS Schedule API
+ *
+ * @param String  $api_key   
+ * @param String  $callsign
+ * @param String  $endpoint  The API method for the request, for example 'today' or 'channels'
+ * @param Array   $args      Arguments to add to the url. For example array('zip', '23220') for the 'channels' method
+ * @param Integer $cache_expire The number of seconds from now to expire the cache for this request, or 0 to not cache request
+ *
+ * @return Object Response data from the request
+ */
+
+function pbs_schedule_request($api_key, $callsign, $endpoint, $args = array(), $cache_expire = 600) {
+  //Build our URI from the arguments
+  $uri = 'http://services.pbs.org/tvss/' . $callsign . '/' . $endpoint . '/';
+  if (!empty($args)) {
+    $uri .= join('/', $args); 
+  }
+  //Check for cached response
+  if ($cache_expire ) {
+    $cache_key = 'pbs_schedule:' . md5($uri);
+    $cache = cache_get($cache_key);
+  }
+  //Return cache if available and not expired
+  if (!empty($cache->data) && time() < time() + $cache->expire) {
+    return $cache->data;
+  }
+  //Otherwise create a new request
+  else {
+    $options['headers'] = array(
+      'X-PBSAUTH' => $api_key,
+    );
+    $response = drupal_http_request($uri, $options);
+    if ($response->code === '200') {
+      if (!empty($cache_expire) && !empty($cache_key)) {
+        cache_set($cache_key, json_decode($response->data), 'cache', time() + $cache_expire);
+      }
+      return json_decode($response->data);
+    }
+  }
+}
+
+/**
+ * Implements hook_block_info().
+ *
+ */
+function pbs_schedule_block_info() {
+  $blocks['on_tonight'] = array(
+    'info' => t('PBS Schedule - On Tonight'),
+    'cache' => DRUPAL_NO_CACHE
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ *
+ */
+function pbs_schedule_block_view($delta = '') {
+  switch ($delta) {
+    case 'on_tonight':
+      $content = _on_tonight_schedule_content();
+      $block['content'] = theme('pbs_schedule_tonight_listing', $content);
+    break;
+  }
+  return $block;
+}
+
+function _on_tonight_schedule_content() {
+  ctools_include('modal');
+  ctools_include('ajax');
+  ctools_modal_add_js();
+  ctools_add_js('pbs_schedule_ctools', 'pbs_schedule');
+
+  //Add settings for our modal theme using inline, so that
+  //we can provide an expression for pseudo-reponsive modals
+  drupal_add_js("Drupal.settings.pbsScheduleModal = {
+    modalSize: {
+      type: 'scale',
+      width: (jQuery(window).width() < 700) ? .8 : .5,
+      height: (jQuery(window).width() < 700) ? .8 : .4,
+      addHeight: 10,
+    },
+    modalOptions: {
+      opacity: 0.4,
+      background: '#000',
+    },
+    closeText: '',
+    animation: 'fadeIn',
+    modalTheme: 'pbs_schedule_modal',
+    }
+    ", 'inline');
+  
+  $config = pbs_schedule_get_config();
+  $schedule = pbs_schedule_request($config['api_key'], $config['callsign'], 'today');
+  $enabled_channels = $config['channels'];
+
+  foreach ($schedule->feeds as $feed) {
+    if (in_array($feed->short_name, $enabled_channels, TRUE)) {
+      $listings = array();
+      foreach ($feed->listings as $listing) {
+        if ($listing->start_time >= 2000) {
+          //If a show_id is provided, we'll create an ajax link for more information
+          if (!empty($listing->show_id)) {
+            $link = array(
+              '#type' => 'link',
+              '#title' => $listing->title,
+              '#href' => 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
+              '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
+            );
+          $title = drupal_render($link) . '</li>';
+          }
+          //Otherwise just provide the title
+          else {
+            $title = $listing->title;
+          }
+            
+          $listings[] = array(
+            'start_time' => date('g:i a', strtotime($listing->start_time)),
+            'title' => $title,
+          );
+        }
+      }
+      $content['channels'][] = array(
+        'name' => t($feed->full_name),
+        'listings' => $listings
+      );
+    }
+  }
+  return $content;
+}
+
+function pbs_schedule_get_show($ajax, $show_id) {
+  $config = pbs_schedule_get_config();
+  ctools_include('modal');
+  $is_ajax = $ajax === 'ajax';
+  
+  if ($show = pbs_schedule_request($config['api_key'], $config['callsign'], 'upcoming', array('show', $show_id))) {
+    $program_title = $show->title;
+    
+    //Build our render array
+    $content = array(
+      'is_ajax' => $is_ajax,
+      'program_title' => $program_title,
+      'episode_title' => !empty($show->episode_title) ? $show->episode_title : '',
+      'episode_description' => !empty($show->episode_description) ? $show->episode_description : '',
+      'program_description' => !empty($show->description) ? $show->description : '',
+    );
+    foreach ($show->upcoming_shows as $upcoming) {
+      $content['upcoming_airdates'][] = array(
+        'time' => date('D m/d/Y g:i a', strtotime($upcoming->day.'t'.$upcoming->start_time)),
+        'channel' => $upcoming->feed->full_name,
+      );
+    }
+  }
+  else {
+    $program_title = 'No Information Available';
+  }
+  //Most likely a 500 error from the API - need to handle this more elegantly
+  if (empty($content)) {
+    $content = array(
+      'episode_description' => 'No Information Available',
+      'is_ajax' => $is_ajax
+    );
+  }
+  $output = theme('pbs_schedule_program_detail', $content);
+ 
+  if ($is_ajax) {
+    $commands = array();
+    $commands[] = ctools_modal_command_display($program_title, $output);
+    return array(
+      '#type' => 'ajax',
+      '#commands' => $commands,
+    );
+  }
+  return $output;
+}

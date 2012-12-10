@@ -1,0 +1,6 @@
+name = PBS Schedule
+description = PBS Schedule API for WCVE
+core = 7.x
+package = WCVE Custom
+dependencies[] = ctools
+stylesheets[all][] = css/style.css

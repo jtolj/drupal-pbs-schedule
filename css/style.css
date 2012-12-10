@@ -1,0 +1,51 @@
+/*Lock body scrolling while Modal is active?*/
+body.ctools-modal-active {
+  height:100%;
+  overflow:hidden;
+}
+
+/*Modal Popup*/
+#pbs-schedule-program-detail .modal-header {
+  background-color: #777;
+}
+
+#pbs-schedule-program-detail #modal-title {
+  white-space: normal; /*Allows line break on smaller screens*/
+}
+
+#pbs-schedule-program-detail .pbs-schedule-detail-wrapper {
+  background-color: #EEE;
+  padding: 5px;
+  border: 1px solid #DDD;
+}
+
+#pbs-schedule-program-detail .modal-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+#pbs-schedule-program-detail .pbs-schedule-detail-wrapper h5 {
+  margin-bottom: 0;
+}
+
+#pbs-schedule-program-detail .pbs-schedule-detail-wrapper h6 {
+  margin-bottom: 5px;
+}
+
+#pbs-schedule-program-detail .pbs-schedule-detail-pg-description {
+  font-size: 90%;
+  margin-top: 10px;
+}
+
+#pbs-schedule-program-detail .pbs-schedule-detail-upcoming {
+  margin-top: 1em;
+}
+
+
+#pbs-schedule-program-detail .pbs-schedule-detail-wrapper ul {
+  list-style:none;
+}
+
+/*On Tonight Listings Block*/
+.pbs-schedule-tonight ul {
+  list-style: none;
+}
