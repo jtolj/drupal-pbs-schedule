@@ -76,7 +76,6 @@ function pbs_schedule_get_config() {
     $config = array(
       'api_key' => variable_get('pbs_schedule_api_key'),
       'callsign' => variable_get('pbs_schedule_default_callsign'),
-      //TODO - this is hackish
       'channels' => array_values(variable_get('pbs_schedule_active_channels')),
     );
   }
@@ -102,7 +101,7 @@ function pbs_schedule_request($api_key, $callsign, $endpoint, $args = array(), $
     $uri .= join('/', $args); 
   }
   //Check for cached response
-  if ($cache_expire ) {
+  if ($cache_expire) {
     $cache_key = 'pbs_schedule:' . md5($uri);
     $cache = cache_get($cache_key);
   }
@@ -121,6 +120,9 @@ function pbs_schedule_request($api_key, $callsign, $endpoint, $args = array(), $
         cache_set($cache_key, json_decode($response->data), 'cache', time() + $cache_expire);
       }
       return json_decode($response->data);
+    }
+    else if ($response->code === '500') {
+      watchdog('pbs_schedule', '500 error from PBS Schedule API. <br />Request was <pre>%request</pre>. <br />Error was %error', array('%error' => $response->error, '%request' => $response->request), WATCHDOG_ERROR);
     }
   }
 }
@@ -165,6 +167,7 @@ function _on_tonight_schedule_content() {
       width: (jQuery(window).width() < 700) ? .8 : .5,
       height: (jQuery(window).width() < 700) ? .8 : .4,
       addHeight: 10,
+      addWidth: 5,
     },
     modalOptions: {
       opacity: 0.4,

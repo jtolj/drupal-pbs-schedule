@@ -1,0 +1,169 @@
+<?php
+
+/**
+ * Implements hook_menu()
+ */
+function pbs_schedule_grid_menu() {
+  $items = array();
+  /*
+  $items['admin/config/system/pbs_schedule_grid'] = array(
+    'title' => 'PBS Schedule Grid',
+    'description' => 'Manage settings for the PBS Schedule Grid',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('pbs_schedule_grid_admin_site_settings'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer pbs_schedule_grid'),
+    'file' => 'pbs_schedule_grid.admin.inc',
+  );
+  */
+  //PBS API Proxy callbacks
+  $items['pbs-schedule-grid/daily/nojs/%'] = array(
+    'page callback' => 'pbs_schedule_grid_get_day',
+    'page arguments' => array(2,3,4),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['pbs-schedule-grid/daily/ajax/%'] = array(
+    'delivery callback' => 'ajax_deliver',
+  ) + $items['pbs-schedule-grid/get-day/nojs/%'];
+  return $items;
+}
+
+/**
+ * Implements hook_theme()
+ */
+function pbs_schedule_grid_theme() {
+  return array(
+    'pbs_schedule_grid' => array(
+      'variables' => array(
+        'is_ajax' => NULL,
+        'start_time' => time() - (time() % 1800),
+        'channels' => array(),
+      ),
+      'template' => 'pbs_schedule_grid',
+      'path' =>  drupal_get_path('module', 'pbs_schedule_grid').'/templates',
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_info().
+ *
+ */
+function pbs_schedule_grid_block_info() {
+  $blocks['pbs_schedule_grid'] = array(
+    'info' => t('PBS Schedule Grid'),
+    'cache' => DRUPAL_NO_CACHE
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ *
+ */
+function pbs_schedule_grid_block_view($delta = '') {
+  switch ($delta) {
+    case 'pbs_schedule_grid':
+      $content = _pbs_schedule_grid_build();
+      $block['content'] = theme('pbs_schedule_grid', $content);
+    break;
+  }
+  return $block;
+}
+
+
+function _pbs_schedule_grid_build() {
+  $date = (!empty($_GET['date']) && preg_match('/^(20)\d\d(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])$/', $_GET['date'])) ? $_GET['date'] : date('Ymd');
+  
+  //Add ctools modal support
+  ctools_include('modal');
+  ctools_include('ajax');
+  ctools_modal_add_js();
+  ctools_add_js('pbs_schedule_ctools', 'pbs_schedule');
+
+  //Add settings for our modal theme using inline, so that
+  //we can provide an expression for pseudo-reponsive modals
+  drupal_add_js("Drupal.settings.pbsScheduleModal = {
+    modalSize: {
+      type: 'scale',
+      width: (jQuery(window).width() < 700) ? .8 : .5,
+      height: (jQuery(window).width() < 700) ? .8 : .4,
+      addHeight: 10,
+      addWidth: 5,
+    },
+    modalOptions: {
+      opacity: 0.4,
+      background: '#000',
+    },
+    closeText: '',
+    animation: 'fadeIn',
+    modalTheme: 'pbs_schedule_modal',
+    }
+    ", 'inline');
+    
+  //Add jQuery Scrollpane Javascript
+  drupal_add_css(drupal_get_path('module', 'pbs_schedule_grid') . '/css/jquery.jscrollpane.css');
+  ctools_add_js('jquery.jscrollpane.min','pbs_schedule_grid');
+  
+  //Event handlers,etc for schedule grid
+  ctools_add_js('pbs-schedule-grid', 'pbs_schedule_grid');
+  
+  $content = pbs_schedule_grid_get_day(FALSE, $date);
+  return $content;
+}
+
+
+/**
+ *
+ */
+function pbs_schedule_grid_get_day($ajax, $date, $start_time = NULL) {
+  if (empty($start_time)) $start_time = time();
+  $config = pbs_schedule_get_config();
+  $enabled_channels = $config['channels'];
+  $is_ajax = $ajax === 'ajax';
+  $schedule = pbs_schedule_request($config['api_key'], $config['callsign'], 'day', array($date));
+  
+  if (!empty($schedule)) {
+    foreach ($schedule->feeds as $feed) {
+      if (in_array($feed->short_name, $enabled_channels, TRUE)) {
+        $listings = array();
+        $i = 0;
+        $len = sizeof($feed->listings);
+        foreach ($feed->listings as $listing) {
+          $i++;
+          //If a show_id is provided, we'll create an ajax link for more information
+          if (!empty($listing->show_id)) {
+            $link = array(
+              '#type' => 'link',
+              '#title' => $listing->title,
+              '#href' => 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
+              '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
+            );
+          $title = drupal_render($link);
+          }
+          //Otherwise just provide the title
+          else {
+            $title = $listing->title;
+          }
+              
+          $listings[$listing->start_time] = array(
+            'duration' => $listing->minutes,
+            'title' => $title,
+          );
+          if ($i == $len) {
+            $listings[$listing->start_time]['last'] = TRUE;
+          }
+        }
+        $content['channels'][] = array(
+          'name' => t($feed->full_name),
+          'listings' => $listings
+        );
+      }
+    }
+  }
+  if ($is_ajax) {
+    return json_encode($content);
+  }
+  return $content;
+}

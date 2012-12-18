@@ -1,0 +1,6 @@
+name = PBS Schedule Grid
+description = Provides a PBS Schedule Grid Block using the Schedule API
+core = 7.x
+package = WCVE Custom
+dependencies[] = pbs_schedule
+stylesheets[all][] = css/pbs-schedule-grid.css
