@@ -1,6 +1,13 @@
 jQuery(document).ready(function($) {
   
-  $('#tv-schedule-scroll-container').jScrollPane({animateScroll:true});
+  var query = $.deparam.querystring(location.search);
+  
+  $('#tv-schedule-scroll-container')
+  .bind('jsp-arrow-change',function(event, isAtTop, isAtBottom, isAtLeft, isAtRight){
+    if (isAtLeft) {}
+    else if (isAtRight) {}
+  })
+  .jScrollPane({animateScroll:true});
   var scroller = $('#tv-schedule-scroll-container').data('jsp');
   
   $('#controls a').click(function(e){
@@ -9,7 +16,7 @@ jQuery(document).ready(function($) {
     var offset = $('#start-time-0000').outerWidth(true) * 5;/*Todo - change 5 to container width / element width + padding*/
     var jiggle = $('.jspPane').position().left % 150;//Detect any manual scrolling and add additional offset to line things back up.
     if ($(this).hasClass('prev')) {
-      offset += jiggle * -1;
+      offset -= jiggle;
       offset *= -1;
     }
     else {
@@ -18,14 +25,23 @@ jQuery(document).ready(function($) {
     scroller.scrollByX(offset);
   });
   
-  $('#day-selector input').click(function(e) {
+  $('#date-time-submit').click(function(e) {
+    e.preventDefault && e.preventDefault();
     var newdate = $(this).parent().find('select option:selected').val();
-    document.location.href = '?date=' + newdate;
+    var date = $('#day-selector').val();
+    var time = $('#time-selector').val();
+    document.location.href = '?date=' + date + '&time=' + time;
   });
   
-  var hours = new Date().getHours();
-  if (hours < 10) hours = '0' + hours;
-  var offset = jQuery('#start-time-' + hours + '00').position().left+5;
+  var hours;
+  if (query && query.time && typeof query.time !== 'undefined') {
+    hours = query.time;
+  }
+  else {
+    hours = new Date().getHours();
+    if (hours < 10) hours = '0' + hours;
+  }
+  var offset = jQuery('#start-time-' + hours + '00').position().left + 5;
   scroller.scrollToX(offset, false);
   
 });

@@ -57,49 +57,10 @@ ul.listings li span {
   white-space: normal;
 }
 
-ul.listings li.duration-10 {
- width: 40px;
-}
-
-ul.listings li.duration-15 {
-  width: 55px;
-}
-
-ul.listings li.duration-20 {
-  width: 70px;
-}
-
-ul.listings li.duration-30 {
-  width: 130px;
-}
-ul.listings li.duration-60 {
-  width: 280px;
-}
-ul.listings li.duration-90 {
-  width: 430px;
-}
-ul.listings li.duration-120 {
-  width: 580px;
-}
-ul.listings li.duration-150 {
-  width: 730px;
-}
-ul.listings li.duration-180 {
-  width: 880px;
-}
-ul.listings li.duration-210 {
-  
-}
-ul.listings li.duration-240 {
- 
-}
-ul.listings li.duration-300 {
-
-}
-#day-selector, #station-list {
+#date-time-options, #station-list {
   position:absolute;
 }
-#day-selector {
+#date-time-options {
   top: 5px;
   left: 155px;
 }

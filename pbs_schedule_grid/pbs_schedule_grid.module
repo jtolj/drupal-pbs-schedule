@@ -75,7 +75,6 @@ function pbs_schedule_grid_block_view($delta = '') {
 
 function _pbs_schedule_grid_build() {
   $date = (!empty($_GET['date']) && preg_match('/^(20)\d\d(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])$/', $_GET['date'])) ? $_GET['date'] : date('Ymd');
-  
   //Add ctools modal support
   ctools_include('modal');
   ctools_include('ajax');
@@ -149,6 +148,7 @@ function pbs_schedule_grid_get_day($ajax, $date, $start_time = NULL) {
               
           $listings[$listing->start_time] = array(
             'duration' => $listing->minutes,
+            'width' => 130 * ($listing->minutes/30) + ($listing->minutes/30 -1) * 20,
             'title' => $title,
           );
           if ($i == $len) {
