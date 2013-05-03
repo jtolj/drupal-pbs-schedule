@@ -1,11 +1,15 @@
 #tv-schedule {
   width: 860px;
-  height: auto;
-  background-color: #efefef;
+  height: 410px;
+  background-color: #fff;
+  box-shadow: 0px 0px 2px 2pt #ccc;
   padding: 25px;
-  height: 350px;
+  margin: 0 0 35px;
   position: relative;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 #tv-schedule-scroll-container {
   margin-left: 130px;
   width: 738px;
@@ -24,6 +28,7 @@ ul.times, ul.listings {
   margin-left: -5px;
   font-size: 0; /*Fix for extra spacing with inline-block elements*/
 }
+
 ul.times li, ul.listings li {
   font-size: 10px;
   height: 100%;
@@ -35,24 +40,90 @@ ul.times li, ul.listings li {
   zoom: 1;
   *display: inline; /*ie*/
 }
-#start-time-2330, ul.listings li.last {
-  margin-right: 0;
+
+ul.times li, ul.listings li {
+background: rgb(226,226,226);
+background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIwJSIgeTI9IjEwMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2UyZTJlMiIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmMmYyZjIiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+background: -moz-linear-gradient(top,  rgba(226,226,226,1) 0%, rgba(242,242,242,1) 100%);
+background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(226,226,226,1)), color-stop(100%,rgba(242,242,242,1)));
+background: -webkit-linear-gradient(top,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: -o-linear-gradient(top,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: -ms-linear-gradient(top,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: linear-gradient(to bottom,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e2e2e2', endColorstr='#f2f2f2',GradientType=0 );
+
+border-radius: 2px;
+
+
+
 }
+
+ul.times-vertical li, ul.listings-vertical li {
+background: rgb(226,226,226);
+background: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/Pgo8c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgdmlld0JveD0iMCAwIDEgMSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJncmFkLXVjZ2ctZ2VuZXJhdGVkIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMCUiPgogICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2UyZTJlMiIgc3RvcC1vcGFjaXR5PSIxIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmMmYyZjIiIHN0b3Atb3BhY2l0eT0iMSIvPgogIDwvbGluZWFyR3JhZGllbnQ+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0idXJsKCNncmFkLXVjZ2ctZ2VuZXJhdGVkKSIgLz4KPC9zdmc+);
+background: -moz-linear-gradient(left,  rgba(226,226,226,1) 0%, rgba(242,242,242,1) 100%);
+background: -webkit-gradient(linear, left top, right top, color-stop(0%,rgba(226,226,226,1)), color-stop(100%,rgba(242,242,242,1)));
+background: -webkit-linear-gradient(left,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: -o-linear-gradient(left,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: -ms-linear-gradient(left,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+background: linear-gradient(to right,  rgba(226,226,226,1) 0%,rgba(242,242,242,1) 100%);
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e2e2e2', endColorstr='#f2f2f2',GradientType=1 );
+
+
+border-radius: 2px;
+
+}
+
+ul.times #start-time-2330, ul.listings li.last {
+  margin-right: 0;
+  padding-right: 0;
+}
+
+ul.times-vertical, ul.listings-vertical {
+  display: block;
+  float:left;
+  height: 7944px;
+  overflow: hidden;
+}
+ul.times-vertical li, ul.listings-vertical li {
+  display: block;
+  padding: 5px;
+  margin: 5px 2px;
+  width: 100px;
+  height: 150px;
+}
+
+ul.times-vertical li {
+  width: 75px;
+}
+
+ul.times-vertical h3, ul.listings-vertical h3 {
+  text-align: center;
+  font-size: 1.2em;
+  margin:0;
+}
+
+ul.times-vertical h3 {
+  visibility: hidden;
+}
+
+ul.listings li.last span {
+  padding-right: 2px;
+}
+
 ul.times {
   height: 20px;
 }
 ul.times li {
   font-size: 14px;
-  background-color: #ccc;
 }
 ul.listings {
   height: 60px;
 }
-ul.listings li {
-  background-color: #ccc;
+ul.listings li, ul.listings-vertical li {
   overflow: hidden;
 }
-ul.listings li span {
+ul.listings li span, ul.listings-vertical li {
   font-size: 1.1em;
   white-space: normal;
 }
@@ -84,11 +155,17 @@ ul.listings li span {
 }
 
 #station-list {
-  top: 85px;
+  top: 95px;
   left: 30px;
+  
+  text-align:center;
 }
 #station-list h3 {
-  height: 60px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #444;
+  height: 85px;
+  padding: 0 5px;
   width: 100px; 
   font-size: 1.2em;
+  margin:0;
 }

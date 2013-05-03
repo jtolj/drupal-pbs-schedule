@@ -87,45 +87,78 @@ function pbs_schedule_get_config() {
  *
  * @param String  $api_key   
  * @param String  $callsign
- * @param String  $endpoint  The API method for the request, for example 'today' or 'channels'
+ * @param String  $method  The API method for the request, for example 'today' or 'channels'
  * @param Array   $args      Arguments to add to the url. For example array('zip', '23220') for the 'channels' method
  * @param Integer $cache_expire The number of seconds from now to expire the cache for this request, or 0 to not cache request
  *
  * @return Object Response data from the request
  */
 
-function pbs_schedule_request($api_key, $callsign, $endpoint, $args = array(), $cache_expire = 600) {
-  //Build our URI from the arguments
-  $uri = 'http://services.pbs.org/tvss/' . $callsign . '/' . $endpoint . '/';
-  if (!empty($args)) {
-    $uri .= join('/', $args); 
-  }
-  //Check for cached response
-  if ($cache_expire) {
-    $cache_key = 'pbs_schedule:' . md5($uri);
-    $cache = cache_get($cache_key);
-  }
-  //Return cache if available and not expired
-  if (!empty($cache->data) && time() < time() + $cache->expire) {
-    return $cache->data;
-  }
-  //Otherwise create a new request
-  else {
-    $options['headers'] = array(
-      'X-PBSAUTH' => $api_key,
-    );
-    $response = drupal_http_request($uri, $options);
-    if ($response->code === '200') {
-      if (!empty($cache_expire) && !empty($cache_key)) {
-        cache_set($cache_key, json_decode($response->data), 'cache', time() + $cache_expire);
+function pbs_schedule_request($api_key, $callsign, $method, $args = array(), $cache_expire = 600) {
+  $callsign = array_map('trim', explode(',', $callsign));
+  $options['headers'] = array(
+    'X-PBSAUTH' => $api_key,
+  );
+ 
+  foreach ($callsign as $station) {
+    //Build our request URI
+    $uri = 'http://services.pbs.org/tvss/' . $station . '/' . $method . '/';
+    if (!empty($args)) {
+      $uri .= join('/', $args); 
+    }
+    //Check for cached response
+    if ($cache_expire) {
+      $cache_key = 'pbs_schedule:' . md5($uri);
+      $cache = cache_get($cache_key);
+    }
+    //Return cache if available and not expired
+    if (!empty($cache->data) && time() < time() + $cache->expire) {
+      $response_data = $cache->data;
+    }
+    //Otherwise make a new request and cache it
+    else {
+      $response = drupal_http_request($uri, $options);
+      if ($response->code === '200') {
+        $response_data = json_decode($response->data);
+        if (!empty($cache_expire) && !empty($cache_key)) {
+          cache_set($cache_key, $response_data, 'cache', time() + $cache_expire);
+        }
       }
-      return json_decode($response->data);
+      else if ($response->code === '500') {
+        watchdog('pbs_schedule', '500 error from PBS Schedule API. <br />Request was <pre>%request</pre>. <br />Error was %error', array('%error' => $response->error, '%request' => $response->request), WATCHDOG_ERROR);
+        continue;
+      }
     }
-    else if ($response->code === '500') {
-      watchdog('pbs_schedule', '500 error from PBS Schedule API. <br />Request was <pre>%request</pre>. <br />Error was %error', array('%error' => $response->error, '%request' => $response->request), WATCHDOG_ERROR);
-    }
+    if (!empty($response_data)) {
+      if (!empty($data->feeds)) { //Additional channel for schedule request
+        foreach ($response_data->feeds as $feed) {
+          $data->feeds[] = $feed;
+        }
+      }
+      else if (!empty($data->headends)) { //Additional channel for headends request
+        foreach ($response_data->headends as $headend) {
+          $data->headends[] = $headend;
+        }
+      }
+      else if (!empty($data->upcoming_episodes)) { //Additional channel for episode detail
+        foreach ($response_data->upcoming_episodes as $upcoming) {
+          $data->upcoming_episodes[] = $upcoming;
+        }
+      }
+      else if (!empty($data->upcoming_shows)) { //Additional channel for show detail
+        foreach ($response_data->upcoming_shows as $upcoming) {
+          $data->upcoming_shows[] = $upcoming;
+        }
+      }
+      else { 
+        $data = $response_data;  
+      }
+    }  
   }
+  if (!empty($data)) return $data;
+  
 }
+
 
 /**
  * Implements hook_block_info().
@@ -216,16 +249,18 @@ function _on_tonight_schedule_content() {
     }
   }
   return $content;
+
 }
 
 function pbs_schedule_get_show($ajax, $show_id) {
+  
   $config = pbs_schedule_get_config();
   ctools_include('modal');
   $is_ajax = $ajax === 'ajax';
+  $enabled_channels = $config['channels'];
   
   if ($show = pbs_schedule_request($config['api_key'], $config['callsign'], 'upcoming', array('show', $show_id))) {
     $program_title = $show->title;
-    
     //Build our render array
     $content = array(
       'is_ajax' => $is_ajax,
@@ -235,10 +270,15 @@ function pbs_schedule_get_show($ajax, $show_id) {
       'program_description' => !empty($show->description) ? $show->description : '',
     );
     foreach ($show->upcoming_shows as $upcoming) {
-      $content['upcoming_airdates'][] = array(
-        'time' => date('D m/d/Y g:i a', strtotime($upcoming->day.'t'.$upcoming->start_time)),
-        'channel' => $upcoming->feed->full_name,
-      );
+      if (in_array($upcoming->feed->short_name, $enabled_channels, TRUE)) {
+        $start_time = strtotime($upcoming->day.'t'.$upcoming->start_time);
+        $end_time = strtotime($upcoming->day.'t'.$upcoming->start_time) + ($upcoming->minutes * 60);
+        $content['upcoming_airdates'][] = array(
+          'time' => date('D m/d/Y g:i a', $start_time),
+          'channel' => $upcoming->feed->full_name,
+          'gcal' =>'<a href="http://www.google.com/calendar/event?action=TEMPLATE&text=Program+Reminder:+'.urlencode($show->title).'&dates=' . gmdate("Ymd\THis\Z", $start_time) . '/' . gmdate("Ymd\THis\Z", $end_time) . '&details=&location=' . urlencode($upcoming->feed->full_name) . '&trp=false&sprop&sprop=name:" target="_blank">Add to Google Calendar</a>',
+        );
+      }
     }
   }
   else {

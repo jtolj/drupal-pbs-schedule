@@ -11,8 +11,9 @@
       <ul>
         <?php foreach ($upcoming_airdates as $episode): ?>
           <li>
-            <span class=""><?php echo $episode['time'] ?></span> on 
-            <span class=""><?php echo $episode['channel'] ?></span>
+            <span class="upcoming-time"><?php echo $episode['time'] ?></span> on 
+            <span class="upcoming-channel"><?php echo $episode['channel'] ?></span>
+            <span class="upcoming-gcal"><?php echo $episode['gcal'] ?></span>
           </li>
         <?php endforeach ?>
       </ul>

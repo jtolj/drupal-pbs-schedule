@@ -19,7 +19,7 @@ function pbs_schedule_admin_site_settings() {
     '#title' => 'Default Callsign',
     '#type' => 'textfield',
     '#required' => TRUE,
-    '#description' => 'Default callsign to use for the Schedule API.',
+    '#description' => 'Default callsign to use for the Schedule API. (Use commas to separate multiple callsigns - API responses will be combined)',
     '#default_value' => variable_get('pbs_schedule_default_callsign'),
   );
   
@@ -45,6 +45,7 @@ function pbs_schedule_admin_site_settings_validate($form, &$form_state) {
   $api_key = $values['pbs_schedule_api_key'];
   $callsign = $values['pbs_schedule_default_callsign'];
   $response = pbs_schedule_request($api_key, $callsign, 'channels',array(), 0);
+    
   if (!$response) {
     form_set_error('pbs_api_settings', 'Failed to connect to PBS Schedule API with those credentials.');
   }
