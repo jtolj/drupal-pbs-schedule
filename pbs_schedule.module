@@ -86,7 +86,7 @@ function pbs_schedule_get_config() {
  * Make a request to the PBS Schedule API
  *
  * @param String  $api_key   
- * @param String  $callsign
+ * @param String  $callsign Can also be array of callsigns, responses will be combined
  * @param String  $method  The API method for the request, for example 'today' or 'channels'
  * @param Array   $args      Arguments to add to the url. For example array('zip', '23220') for the 'channels' method
  * @param Integer $cache_expire The number of seconds from now to expire the cache for this request, or 0 to not cache request
@@ -112,7 +112,7 @@ function pbs_schedule_request($api_key, $callsign, $method, $args = array(), $ca
       $cache = cache_get($cache_key);
     }
     //Return cache if available and not expired
-    if (!empty($cache->data) && time() < time() + $cache->expire) {
+    if (!empty($cache->data) && time() < $cache->expire) {
       $response_data = $cache->data;
     }
     //Otherwise make a new request and cache it
