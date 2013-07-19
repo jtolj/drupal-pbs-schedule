@@ -1,7 +1,7 @@
 <div id="pbs-schedule-tonight-wrapper">
   <?php foreach ($channels as $channel): ?>
   <div class="pbs-schedule-tonight">
-    <strong><?php echo $channel['name'] ?></strong>
+    <div class="pbs-schedule-on-tonight-channel"><?php echo $channel['name'] ?></div>
     <ul>
       <?php foreach ($channel['listings'] as $listing) : ?>
         <li>

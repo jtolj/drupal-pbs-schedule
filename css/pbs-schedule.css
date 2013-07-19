@@ -54,6 +54,23 @@ body.ctools-modal-active {
 }
 
 /*On Tonight Listings Block*/
-.pbs-schedule-tonight ul {
+#block-pbs-schedule-on-tonight ul {
+  margin: 0;
+}
+
+#block-pbs-schedule-on-tonight ul li {
   list-style: none;
 }
+
+#block-pbs-schedule-on-tonight .listing-time {
+  font-weight: bold;
+}
+
+#block-pbs-schedule-on-tonight .pbs-schedule-on-tonight-channel {
+  cursor: pointer;
+  font-weight: bold;
+  background: #efefef;
+  padding: 2px 2px 2px 5px;
+  margin: 5px 0;
+}
+

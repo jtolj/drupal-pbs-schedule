@@ -177,7 +177,7 @@ function _pbs_schedule_grid_build_week() {
     $content['listings'][] = pbs_schedule_grid_get_day(FALSE,  date('Ymd', $date));
     $content['dates'][] = $date;
   }
-  //dsm($content);
+  
   return $content;
  
 }
@@ -213,52 +213,30 @@ function pbs_schedule_grid_get_day($ajax, $date) {
                   break;
                 }
               }
+              
               $fill = $hours_mins[0] * 60 + $hours_mins[1];
-               //If a show_id is provided, we'll create an ajax link for more information
-              if (!empty($yesterday_listing->show_id)) {
-                $link = array(
-                  '#type' => 'link',
-                  '#title' => $yesterday_listing->title,
-                  '#href' => 'pbs-schedule/showlookup/nojs/' . $yesterday_listing->show_id,
-                  '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
-                );
-                $title = drupal_render($link);
-              }
-              //Otherwise just provide the title
-              else {
-                $title = $yesterday_listing->title;
-              }
-              $listings['0000'] = array(
-                'title' => $title . ' (Cont\'d)',
+              $override = array(
+                'title' => $yesterday_listing->title . ' (Cont\'d)',
                 'duration' => $fill,
                 'width' => 130 * ($fill/30) + ($fill/30 -1) * 20,
               );
+              
+              $listings['0000'] = pbs_schedule_grid_item_data($yesterday_listing, $override);
             }
           }
-          //If a show_id is provided, we'll create an ajax link for more information
-          if (!empty($listing->show_id)) {
-            $link = array(
-              '#type' => 'link',
-              '#title' => $listing->title,
-              '#href' => 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
-              '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
-            );
-          $title = drupal_render($link);
-          }
-          //Otherwise just provide the title
-          else {
-            $title = $listing->title;
-          }
-          $listings[$listing->start_time] = array(
-            'duration' => $listing->minutes,
-            'width' => 130 * (round($listing->minutes/5)*5/30) + (round($listing->minutes/5)*5/30 -1) * 20, //Round to nearest 5 minutes
-            'title' => $title,
-          );
-          if ($listing->start_time + $listing->minutes > 2360) {
-            $listings[$listing->start_time]['title'] = $listings[$listing->start_time]['title'] . ' (Continues)';
-          }
+          
+          //Build our listings data for the template
+          $listings[$listing->start_time] = pbs_schedule_grid_item_data($listing);
+          
+          //If this is our last item. Truncate duration if it overruns this day
           if ($i === $len) {
             $listings[$listing->start_time]['last'] = TRUE;
+            if ($listing->start_time + $listing->minutes > 2360) {
+              $listings[$listing->start_time]['title'] = $listings[$listing->start_time]['title'] . ' (Continues)';
+              $interval = date_diff(new DateTime($listing->start_time), new DateTime(2400));
+              $mod_duration = ($interval->format('%h') * 60) + $interval->format('%i');
+              $listings[$listing->start_time]['width'] = 130 * (round($mod_duration/5)*5/30) + (round($mod_duration/5)*5/30 -1) * 20;
+            }
           }
         }
         $content['channels'][] = array(
@@ -272,4 +250,23 @@ function pbs_schedule_grid_get_day($ajax, $date) {
     return json_encode($content);
   }
   return $content;
+}
+
+/**
+ * Extract the variables from an API listing object for our template
+ * 
+ * @param object $listing A schedule listing item object
+ * @param array $override An array of items that will override the parameters from the listing object
+ * @return array An array of extracted listing data to be injected into the template
+ */
+function pbs_schedule_grid_item_data($listing, $override = array()) {
+  $vars = array(
+    'title' => $listing->title,
+    'episode_title' => (empty($listing->episode_title)) ? null : $listing->episode_title,
+    'show_id' => (empty($listing->show_id)) ? null : $listing->show_id,
+    'link' => (empty($listing->show_id)) ? null : 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
+    'duration' => $listing->minutes,
+    'width' => 130 * (round($listing->minutes/5)*5/30) + (round($listing->minutes/5)*5/30 -1) * 20, //Round to nearest 5 minutes
+  );
+  return array_replace($vars, $override);
 }

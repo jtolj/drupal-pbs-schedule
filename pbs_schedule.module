@@ -31,9 +31,17 @@ function pbs_schedule_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
+
   $items['pbs-schedule/showlookup/ajax/%'] = array(
     'delivery callback' => 'ajax_deliver',
   ) + $items['pbs-schedule/showlookup/nojs/%'];
+  
+  $items['schedule/search'] = array(
+    'page callback' => 'pbs_schedule_search',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
   return $items;
 }
 
@@ -86,7 +94,7 @@ function pbs_schedule_get_config() {
  * Make a request to the PBS Schedule API
  *
  * @param String  $api_key   
- * @param String  $callsign Can also be array of callsigns, responses will be combined
+ * @param String  $callsign
  * @param String  $method  The API method for the request, for example 'today' or 'channels'
  * @param Array   $args      Arguments to add to the url. For example array('zip', '23220') for the 'channels' method
  * @param Integer $cache_expire The number of seconds from now to expire the cache for this request, or 0 to not cache request
@@ -104,7 +112,7 @@ function pbs_schedule_request($api_key, $callsign, $method, $args = array(), $ca
     //Build our request URI
     $uri = 'http://services.pbs.org/tvss/' . $station . '/' . $method . '/';
     if (!empty($args)) {
-      $uri .= join('/', $args); 
+      $uri .= join('/', $args) . '/'; 
     }
     //Check for cached response
     if ($cache_expire) {
@@ -227,9 +235,12 @@ function _on_tonight_schedule_content() {
               '#type' => 'link',
               '#title' => $listing->title,
               '#href' => 'pbs-schedule/showlookup/nojs/' . $listing->show_id,
-              '#attributes' => array('class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
+              '#attributes' => array('rel' => 'nofollow', 'class' => 'ctools-use-modal ctools-modal-pbsScheduleModal'),
             );
-          $title = drupal_render($link);
+            if (!empty($listing->episode_title)) {
+              $link['#attributes']['title'] = $listing->episode_title; 
+            }
+            $title = drupal_render($link);
           }
           //Otherwise just provide the title
           else {
@@ -273,10 +284,13 @@ function pbs_schedule_get_show($ajax, $show_id) {
       if (in_array($upcoming->feed->short_name, $enabled_channels, TRUE)) {
         $start_time = strtotime($upcoming->day.'t'.$upcoming->start_time);
         $end_time = strtotime($upcoming->day.'t'.$upcoming->start_time) + ($upcoming->minutes * 60);
+        $email_subject = urlencode($show->title . ' on ' . $upcoming->feed->full_name);
+        $email_body = urlencode('Your friend wanted to share that '.$show->title.' is coming up on '.$upcoming->feed->full_name.'. You can watch it on '.format_date($start_time, 'custom', 'l F jS, Y \a\t g:ia.'));
         $content['upcoming_airdates'][] = array(
           'time' => date('D m/d/Y g:i a', $start_time),
           'channel' => $upcoming->feed->full_name,
-          'gcal' =>'<a href="http://www.google.com/calendar/event?action=TEMPLATE&text=Program+Reminder:+'.urlencode($show->title).'&dates=' . gmdate("Ymd\THis\Z", $start_time) . '/' . gmdate("Ymd\THis\Z", $end_time) . '&details=&location=' . urlencode($upcoming->feed->full_name) . '&trp=false&sprop&sprop=name:" target="_blank">Add to Google Calendar</a>',
+          'gcal_url' =>'http://www.google.com/calendar/event?action=TEMPLATE&text=Program+Reminder:+'.urlencode($show->title).'&dates=' . gmdate("Ymd\THis\Z", $start_time) . '/' . gmdate("Ymd\THis\Z", $end_time) . '&details=&location=' . urlencode($upcoming->feed->full_name) . '&trp=false&sprop&sprop=name:',
+          'email_url' => "mailto:?subject=$email_subject&body=$email_body", 
         );
       }
     }
@@ -302,4 +316,16 @@ function pbs_schedule_get_show($ajax, $show_id) {
     );
   }
   return $output;
+}
+
+
+function pbs_schedule_search() {
+  $terms = (!empty($_GET['query'])) ? $_GET['query'] : null;
+  $config = pbs_schedule_get_config();
+  $enabled_channels = $config['channels'];
+  if ($results = pbs_schedule_request($config['api_key'], $config['callsign'], 'search', array(rawurlencode($terms)), 0)) {
+    return '<pre>' . print_r($results, true) . '</pre>';
+  }
+  
+  return 'No results found...';
 }

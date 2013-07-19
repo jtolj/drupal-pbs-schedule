@@ -1,9 +1,8 @@
 Channels:
 <div id="channel-selector">
-<a href="#" id="wcve-hdtv">WCVE HD</a>
-<a href="#" id="wcve-create">WCVE Create</a>
-<a href="#" id="wcve-mhz-worldview">WCVE Worldview</a>
-<a href="#" id="wcvw-hdtv">WCVW HD</a>
+  <?php foreach ($listings[0]['channels'] as $channel): ?>
+    <a href="#" id="<?php echo strtolower(str_replace(' ', '-', strip_tags($channel['name']))) ?>"><?php echo $channel['name'] ?></a>
+  <?php endforeach ?>
 </div>
 <div id="tv-schedule-weekly">
   <ul class="times-vertical">

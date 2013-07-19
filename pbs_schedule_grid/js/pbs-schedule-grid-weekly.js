@@ -1,6 +1,7 @@
 jQuery(document).ready(function($) {
     var $listingsContainer = $('ul.listings-vertical');
-    $listingsContainer.children('span').not('.wcve-hdtv').hide();
+    var firstTab = $('#channel-selector a').first().attr('id');
+    $listingsContainer.children('span').not('.' + firstTab).hide();
     
     
     $('#channel-selector a').click(function(e){

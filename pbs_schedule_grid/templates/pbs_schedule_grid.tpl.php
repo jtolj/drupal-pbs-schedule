@@ -42,7 +42,8 @@
     </select>
     <input id="date-time-submit" type="submit" value="Go"/>
   </div>
-  <div id="station-list">
+  
+  <div id="station-list">    
     <?php foreach ($channels as $channel): ?>
       <h3><?php echo $channel['name'] ?></h3>
     <?php endforeach; ?>
